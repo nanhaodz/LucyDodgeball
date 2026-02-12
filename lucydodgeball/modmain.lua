@@ -3,11 +3,15 @@ local _G = GLOBAL
 -- Check if the gamemode is correct.
 local gm = _G.TheNet:GetServerGameMode()
 if gm ~= "" and gm ~= "lavaarena" then
-	Log("error", "Lucy Dodgeball is designed to be played in The Forge. Some features may not work properly in other gamemodes.")
+	Log("warning", "Lucy Dodgeball is designed to be played in The Forge. Some features may not work properly in other gamemodes.")
 	return
 end
 
--- All commands start with "c_ld" to diferentiate from other commands.
+-- Create a ReForged preset with proper settings.
+_G.AddPreset("dodgeball", "reforged", nil, "forge", "sandbox", "lavaarena", {no_revives = true, no_heal = true, no_restriction = true, no_recharge = true}, {atlas = "images/reforged.xml", tex = "preset_s1.tex",}, 0)
+_G.STRINGS.REFORGED.PRESETS["dodgeball"] = "Dodgeball"
+
+-- All commands start with "c_ld_" to diferentiate from other commands.
 
 _G.c_ld_equipall = function() -- Equip Riled Lucy and Reed Tunic to all players.
     Log("log", "Equipping all players with Riled Lucy and Reed Tunic.")
@@ -43,22 +47,25 @@ _G.c_ld_spreadplayers = function() -- Spread players around the center.
         Log("error", "Could not find Battlemaster Pugna to get the map's center.")
         return
     end
+    Log("log", "Spreading players around the center.")
     local x = pugna:GetPosition().x
     local z = pugna:GetPosition().z + 39
     local dist = 20
     local deg_inc = 360 / #_G.AllNonSpectators
     local deg = math.random(0, 359)
     for k, v in pairs(_G.AllNonSpectators) do
-        v.Transform:SetPosition(x + (math.sin(math.rad(deg)) * dist), 0, z + (math.cos(math.rad(deg)) * dist)) deg = deg + deg_inc
+        v.Transform:SetPosition(x + (math.sin(math.rad(deg)) * dist), 0, z + (math.cos(math.rad(deg)) * dist))
+        deg = deg + deg_inc
     end
 end
 
-_G.c_ld_spawnlucy = function() -- Spawn 4 Riled Lucy at the center.
+_G.c_ld_spawnlucy = function() -- Spawn 4 Riled Lucys at the center.
     local pugna = _G.c_find("lavaarena_boarlord")
     if not pugna then
         Log("error", "Could not find Battlemaster Pugna to get the map's center.")
         return
     end
+    Log("log", "Spawning 4 Riled Lucys at the center.")
     local x = pugna:GetPosition().x
     local z = pugna:GetPosition().z + 39
     _G.SpawnPrefab("riledlucy").Transform:SetPosition(x + 4, 0, z)
@@ -73,6 +80,7 @@ _G.c_ld_spawnlucy_perplayer = function() -- Spawn one Riled Lucy per player in a
         Log("error", "Could not find Battlemaster Pugna to get the map's center.")
         return
     end
+    Log("log", "Spawning Riled Lucys per player around the center.")
     local x = pugna:GetPosition().x
     local z = pugna:GetPosition().z + 39
     local dist = 4
@@ -96,22 +104,26 @@ end
 _G.c_ld_groundplayers = function() -- Freeze all players in place.
     Log("log", "Freezing all players in place.")
     for k, v in pairs(_G.AllNonSpectators) do
-        v.components.locomotor:SetExternalSpeedMultiplier(v, "c_speedmult", 0)
+        v.components.locomotor:SetExternalSpeedMultiplier(v, "c_ld_speedmult", 0)
     end
 end
 
 _G.c_ld_ungroundplayers = function() -- Unfreeze all players.
     Log("log", "Unfreezing all players.")
     for k, v in pairs(_G.AllNonSpectators) do
-        v.components.locomotor:SetExternalSpeedMultiplier(v, "c_speedmult", 1)
+        v.components.locomotor:SetExternalSpeedMultiplier(v, "c_ld_speedmult", 1)
     end
 end
 
 _G.c_ld_groundall = function(prefab) -- Freeze all entities of a certain prefab in place.
-	Log("log", "Freezing all \"" .. prefab .. "\" in place.")
+    if not prefab then 
+        Log("error", "Must specify a prefab.")
+        return
+    end
+	  Log("log", "Freezing all \"" .. prefab .. "\" in place.")
     for k, v in pairs(_G.Ents) do
         if v.prefab == prefab then
-            v.components.locomotor:SetExternalSpeedMultiplier(v, "c_speedmult", 0)
+            v.components.locomotor:SetExternalSpeedMultiplier(v, "c_ld_speedmult", 0)
         end
     end
 end
@@ -120,7 +132,7 @@ _G.c_ld_releaseall = function(prefab) -- Unfreeze all entities of a certain pref
     Log("log", "Unfreezing all \"" .. prefab .. "\".")
     for k, v in pairs(_G.Ents) do
         if v.prefab == prefab then
-            v.components.locomotor:SetExternalSpeedMultiplier(v, "c_speedmult", 1)
+            v.components.locomotor:SetExternalSpeedMultiplier(v, "c_ld_speedmult", 1)
         end
     end
 end
@@ -162,9 +174,12 @@ _G.c_ld_teams = function(n) -- Divide players into n teams and color them accord
         return
     end
     Log("log", "Dividing players into " .. n .. " teams.")
-    _G.c_removecolors(false)
+    _G.c_ld_removecolors(false)
     local AllNonSpectatorsCopy = {}
     local maxplayers = math.floor(#_G.AllNonSpectators / n) * n
+    if maxplayers < #_G.AllNonSpectators then
+        Log("warning", "There are not enough players to divide into " .. n .. " teams. Only " .. maxplayers .. " players will be colored.")
+    end
     for k, v in pairs(_G.AllNonSpectators) do
         AllNonSpectatorsCopy[k] = v
     end
@@ -185,7 +200,7 @@ _G.c_ld_teams = function(n) -- Divide players into n teams and color them accord
     end
 end
 
-_G.c_removecolors = function(log) -- Remove all team colors from players.
+_G.c_ld_removecolors = function(log) -- Remove all team colors from players.
     if log then Log("log", "Cleaning colors from all players.") end
     for k, v in pairs(_G.AllNonSpectators) do
         v.AnimState:SetAddColour(0, 0, 0, 1)
@@ -194,7 +209,7 @@ end
 
 -- This print function is not needed per se, but I thought it would make this mod more professional.
 
-Log() = function(type, message)
+function Log(type, message)
     print("[LD." .. string.upper(type) .. "] " .. message)
 
 end
