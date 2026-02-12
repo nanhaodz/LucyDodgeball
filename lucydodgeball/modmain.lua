@@ -192,8 +192,44 @@ _G.c_removecolors = function(log) -- Remove all team colors from players.
     end
 end
 
--- This print function is not needed per se, but I thought it would make this mod more professional.
+_G.c_setupgame = function()
+    _G.TheNet:Announce("Setting up...")
 
+    _G.c_cleanup()
+    _G.c_equipall()
+    _G.c_maxhpall()
+    _G.c_spreadplayers()
+    _G.c_groundplayers()
+end
+
+_G.c_startgame = function()
+    _G.TheNet:Announce("Starting game...")
+
+    _G.TheWorld:DoTaskInTime(1, function()
+        _G.TheNet:Announce("3...")
+    end)
+
+    _G.TheWorld:DoTaskInTime(2, function()
+        _G.TheNet:Announce("2...")
+    end)
+
+    _G.TheWorld:DoTaskInTime(3, function()
+        _G.TheNet:Announce("1...")
+    end)
+
+    _G.TheWorld:DoTaskInTime(4, function()
+        _G.TheNet:Announce("GO!")
+
+        _G.c_releaseplayers()
+
+        _G.TheWorld.net.components.mutatormanager:UpdateMutators({
+            friendly_fire = true,
+        })
+    end)
+end
+
+-- This print function is not needed per se, but I thought it would make this mod more professional.
 Log() = function(type, message)
     print("[LD." .. string.upper(type) .. "] " .. message)
+
 end
